@@ -1,12 +1,3 @@
-// https://stackoverflow.com/questions/28558920/postgresql-foreign-key-syntax
-
-// Users:
-// id
-// email
-// password
-// avatar url
-// salt
-
 import sha512 from "js-sha512"
 import conn from "./db.js"
 
@@ -38,16 +29,15 @@ async function main() {
     table.string("username", 45)
     table.string("password", 128)
     table.string("salt", 20)
-    table.boolean("isAdmin")
+    table.boolean("is_admin")
   })
 
   await conn.schema.createTable(`goals`, (table) => {
     table.increments("id")
     table.string("title", 45)
     table.string("description", 250)
-    table.text("body")
     table.integer("points").unsigned()
-    table.enu("status", ["complete", "in_progress", "active"])
+    table.enu("status", ["complete", "not_started", "active"])
     table.integer("parent_id").unsigned()
     table.foreign("parent_id").references("users.id").onDelete("cascade")
     table.integer("child_id").unsigned()
@@ -58,6 +48,8 @@ async function main() {
     table.increments("id")
     table.integer("user_id").unsigned()
     table.foreign("user_id").references("users.id").onDelete("cascade")
+    //table.integer("prizes_id").unsigned() <--- do we need this?
+    // table.foreign("prizes_id").references("prizes.id").onDelete("cascade")
   })
 
   await conn.schema.createTable(`prizes`, (table) => {
@@ -73,25 +65,46 @@ async function main() {
       .onDelete("cascade")
   })
 
-  // username
-  // [[deleted]]
 
   const salt = createSalt(20)
   await conn("users").insert({
+    id:1,
     username: "parent",
     password: sha512("test" + salt),
     salt: salt,
+    is_admin: true,
   })
   await conn("users").insert({
+    id:2,
     username: "child",
     password: sha512("test" + salt),
     salt: salt,
+    is_admin: false,
   })
   await conn("goals").insert({
-    title: "goal",
-    body: "bla",
+    id: 1,
+    title: "wash and dress",
+    description: "Wash your face, brush your teeth, dress your best.",
+    points: 5,
+    status: "not_started",
     parent_id: 1,
     child_id: 2,
+    order: 0,
+  })
+
+  await conn("prizes").insert({
+    id: 1,
+    points: 5,
+    title: "robux",
+    description: "1000 robux",
+    prize_thumbnail: "https://m.media-amazon.com/images/I/71QMkXmLVCL._SY606_.jpg",
+    prize_bin_id: 1,
+  })
+  await conn("prize_bins").insert({
+    id: 1,
+    user_id: 1,
+    user_id: 2,
+
   })
   // await conn.raw('DELETE FROM users WHERE id = 1')
   process.exit()
